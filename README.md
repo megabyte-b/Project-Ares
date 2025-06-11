@@ -1,5 +1,7 @@
 # ARES-LOCKER RANSOMEWARE
 
+ACHTUNG: Es ist in Entwiklung und könnte instabil sein.
+
 # Disclaimer:
 Dieses Projekt dient ausschließlich zu Forschungs-, Analyse- und Testzwecken im Bereich IT-Sicherheit. Die Nutzung, Verbreitung oder Anwendung auf fremden Systemen ohne ausdrückliche, schriftliche Genehmigung ist strengstens untersagt und kann strafrechtliche Konsequenzen nach sich ziehen. Der Autor übernimmt keinerlei Haftung für Schäden, die durch unsachgemäßen oder missbräuchlichen Einsatz entstehen. Verwenden Sie dieses Projekt niemals auf produktiven Systemen oder außerhalb kontrollierter, legaler Testumgebungen.
 

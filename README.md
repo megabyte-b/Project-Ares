@@ -1,76 +1,118 @@
-# ARES-LOCKER RANSOMEWARE
 
-**ACHTUNG: Es ist noch in Entwiklung und könnte instabil sein da es noch nicht vollständig ist.**
-Hinweis: Aus Strafrechtlichen Gründen wurde dieses Repestory gelöscht.
+# Wichtiger rechtlicher Hinweis
 
-# Disclaimer:
-Dieses Projekt dient ausschließlich zu Forschungs-, Analyse- und Testzwecken im Bereich IT-Sicherheit. Die Nutzung, Verbreitung oder Anwendung auf fremden Systemen ohne ausdrückliche, schriftliche Genehmigung ist strengstens untersagt und kann strafrechtliche Konsequenzen nach sich ziehen. Der Autor übernimmt keinerlei Haftung für Schäden, die durch unsachgemäßen oder missbräuchlichen Einsatz entstehen. Verwenden Sie dieses Projekt niemals auf produktiven Systemen oder außerhalb kontrollierter, legaler Testumgebungen.
+**Dieses Projekt dient ausschließlich Forschungs-, Analyse- und Testzwecken im Bereich der IT-Sicherheit. Jegliche Nutzung, Verbreitung oder Anwendung auf fremden Systemen ohne ausdrückliche und schriftliche Erlaubnis ist strengstens untersagt und kann straf- sowie zivilrechtliche Konsequenzen nach sich ziehen. Der Autor übernimmt keinerlei Haftung für Schäden, Datenverluste oder sonstige Folgen, die durch unsachgemäßen, fahrlässigen oder missbräuchlichen Einsatz entstehen. Die Verantwortung für die Einhaltung aller geltenden Gesetze und Vorschriften liegt ausschließlich beim Nutzer.**
 
+**Verwenden Sie dieses Projekt niemals auf produktiven Systemen oder außerhalb von kontrollierten, legalen Testumgebungen. Mit der Nutzung bestätigen Sie, dass Sie sich der rechtlichen Risiken bewusst sind und sämtliche Konsequenzen selbst tragen.**
 
-# AresLocker – Technische Übersicht und Ablauf
+# Nutzungsbedingungen
 
-## 1. Start
-Das Programm wird mit `run.py` gestartet. Dieses Skript initialisiert den Ablauf und prüft die Umgebung. Es lädt die notwendigen Module und stellt sicher, dass alle Abhängigkeiten vorhanden sind. Zudem wird geprüft, ob das Programm mit Administratorrechten läuft, da für einige Aktionen (z. B. Registry-Änderungen, Systemdienste) erhöhte Rechte benötigt werden. Das Skript kann Logdateien anlegen, um den Ablauf zu protokollieren, und prüft, ob bereits eine Instanz läuft (z. B. über Mutex oder Lock-Datei).
-
-## 2. Analysephase
-Zu Beginn prüft das Programm, ob es in einer Analyseumgebung läuft (z. B. VM, Sandbox, Debugger):
-- **Analyse erkannt:**
-  - `encryptor/7z.exe` und `encryptor/dell.bat` werden genutzt, um das Programm und seine Spuren zu entfernen. Dabei werden temporäre Dateien, Logs und eventuell bereits extrahierte Komponenten gelöscht.
-  - Die Erkennung erfolgt durch das Auslesen typischer VM- oder Sandbox-Merkmale (z. B. Prozessnamen, MAC-Adressen, laufende Debugger, spezielle Registry-Keys, virtuelle Hardware, ungewöhnliche Systemkonfigurationen, bekannte Analyse-Tools).
-  - Optional kann das Programm versuchen, Netzwerkverbindungen zu Analyse-Servern zu erkennen und darauf zu reagieren.
-- **Keine Analyse erkannt:**
-  - `encryptor/extract.bat` extrahiert die weiteren Komponenten mit 7zip und startet die Persistenzphase. Die Batch-Datei sorgt dafür, dass alle benötigten Skripte und Tools in die vorgesehenen Verzeichnisse entpackt werden. Dies umgeht Antivierensoftware
-  kommplet da diese keine verschlüsselten und passwortgesicherten
-  Arcive scannen können.
-
-## 3. Persistenz
-- `encryptor/arciv/run.bat` sorgt dafür, dass das Programm nach jedem Neustart des Systems automatisch wieder ausgeführt wird (z. B. durch Eintrag in die Autostart-Registry oder geplante Tasks).
-- Es werden verschiedene Methoden zur Persistenz genutzt, u. a.:
-  - Eintrag in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` für den aktuellen Benutzer
-  - Erstellung eines geplanten Tasks mit `schtasks` (z. B. täglicher Start, Trigger bei Anmeldung)
-  - Kopieren der Batch-Datei in das Autostart-Verzeichnis (`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`)
-  - Optional: Manipulation von Systemdiensten oder Scheduled Tasks für erhöhte Privilegien
-- Die Persistenzmechanismen werden regelmäßig überprüft und ggf. wiederhergestellt, falls sie entfernt wurden (Selbstheilung).
-
-## 4. Terminüberwachung
-- `encryptor/arciv/trigger.bat` überwacht, ob ein vordefinierter Zeitpunkt erreicht ist (z. B. über eine Endlosschleife mit Zeitabfrage).
-- Die Zeitsteuerung kann auf verschiedene Arten erfolgen:
-  - Überprüfung des aktuellen Datums/Uhrzeit gegen einen in der Konfiguration festgelegten Wert
-  - Optional: Abgleich mit einem externen Zeitserver oder über das Internet (z. B. NTP, HTTP-Request)
-  - Möglichkeit, die Ausführung zu verzögern, um Erkennung zu erschweren
-- **Zeitpunkt erreicht:**
-  - `encryptor/arciv/main.py` startet die Hauptfunktion. Hier werden die eigentlichen Schadfunktionen ausgeführt, z. B. Dateiverschlüsselung, Anzeige der Lösegeldforderung.
-  - Parallel dazu deaktiviert `encryptor/arciv/disalbe.py` Schutzmechanismen (z. B. Windows Defender, Task-Manager, Systemwiederherstellung). Dies geschieht durch Registry-Änderungen, das Stoppen von Diensten, das Löschen von Systemdateien und das Blockieren von Prozessen.
-  - Optional: Manipulation der Hosts-Datei, um Sicherheitsupdates oder Hilfeseiten zu blockieren.
-
-## 5. Hauptfunktion
-- `encryptor/arciv/encryptor.py` durchsucht das System nach Dateien und verschlüsselt diese mit einem RSA-Schlüsselpaar aus `keys/`.
-- Es werden gezielt bestimmte Dateitypen (z. B. Dokumente, Bilder, Archive, Datenbanken, Quellcode) in allen erreichbaren Laufwerken und Benutzerverzeichnissen gesucht. Systemverzeichnisse können ausgeschlossen werden, um die Funktionsfähigkeit des Systems zu erhalten.
-- Bei der Verschlüsselung wird ein zufälliger universeller AES Schlüssel generiert und mit dem öffentlichen RSA-Schlüssel verschlüsselt wird (Hybridverschlüsselung, z. B. AES + RSA). Dies spart Zeit, Rechenleistung und ist einfacher anzupassen.
-- Die verschlüsselten Dateien erhalten eine neue Endung (z. B. `.ares`).
-- `encryptor/arciv/note.py` erstellt und zeigt eine Lösegeldforderung als Textdatei auf dem Desktop und in den betroffenen Verzeichnissen an. Die Nachricht enthält Kontaktinformationen, Zahlungsanweisungen (z. B. Bitcoin-Adresse), eine individuelle ID und ggf. Hinweise zur Kontaktaufnahme.
-- **Der generierte AES-Schlüssel wird nach der Verschlüsselung automatisch mit `dc_extract.py` über einen Discord-Bot an einen definierten Kanal verschickt. So wird der Schlüssel sicher extern hinterlegt.**
-- Optional: Netzwerkfreigaben und angeschlossene Laufwerke werden ebenfalls verschlüsselt.
-- Optional: Das Programm kann versuchen, nach bestimmten Prozessen (z. B. Datenbankserver) zu suchen und diese vor der Verschlüsselung zu beenden.
+1. **Zweck:** Dieses Projekt ist ausschließlich für legale Forschungs-, Analyse- und Testzwecke im Bereich der IT-Sicherheit bestimmt.
+2. **Verbotene Nutzung:** Jegliche Anwendung, Verbreitung oder Nutzung auf fremden Systemen ohne ausdrückliche, schriftliche Erlaubnis des Eigentümers ist untersagt und kann straf- sowie zivilrechtliche Konsequenzen nach sich ziehen.
+3. **Haftungsausschluss:** Der Autor übernimmt keinerlei Haftung für Schäden, Datenverluste oder sonstige Folgen, die durch unsachgemäßen, fahrlässigen oder missbräuchlichen Einsatz entstehen.
+4. **Eigenverantwortung:** Die Einhaltung aller geltenden Gesetze und Vorschriften liegt ausschließlich beim Nutzer. Der Nutzer trägt sämtliche rechtlichen Konsequenzen selbst.
+5. **Keine Produktivnutzung:** Die Nutzung auf produktiven Systemen oder außerhalb von kontrollierten, legalen Testumgebungen ist strengstens untersagt.
+6. **Änderungen:** Der Autor behält sich vor, die Nutzungsbedingungen jederzeit zu ändern. Es gilt die jeweils aktuelle Fassung in diesem Dokument.
+7. **Hinweis:** Mit der Nutzung dieses Projekts erkennen Sie diese Bedingungen ausdrücklich an.
 
 
-**Datei- und Verzeichnisstruktur:**
-- Alle Skripte und Batch-Dateien befinden sich im Verzeichnis `encryptor/arciv/` bzw. im Hauptverzeichnis `encryptor/`.
-- Die Schlüssel zur Ver- und Entschlüsselung liegen im Ordner `keys/` (`private.pem`, `public.pem`).
-- `decryptor/` enthält Tools zur Entschlüsselung, sofern der private Schlüssel bekannt ist.
-- Wichtige Dateien und deren Aufgaben:
-  - `run.py`: Startpunkt, Initialisierung, Rechteprüfung, Logging
-  - `extract.bat`: Entpacken der Komponenten, AV-Umgehung
-  - `run.bat`: Persistenzmechanismus, Autostart
-  - `trigger.bat`: Zeitüberwachung, Verzögerung
-  - `main.py`: Steuerung der Hauptfunktion, Koordination
-  - `encryptor.py`: Verschlüsselung der Dateien, Dateisuche
-  - `note.py`: Anzeige und Erstellung der Lösegeldforderung
-  - `disalbe.py`: Deaktivierung von Schutzmechanismen, Registry- und Dienstemanipulation
-  - `dell.bat`: Selbstlöschung bei Analyseerkennung
-  - `7z.exe`: Entpacken von Archiven
-  - `dc_extract.py`: Verschicken des universellen AES-Schlüssels über Discord 
-- Die Verzeichnisse sind so strukturiert, dass eine Trennung zwischen Verschlüsselung, Entschlüsselung und Schlüsseln besteht.
+# AresLocker – Technische Übersicht
+
+
+## Funktionsübersicht
+
+### 1. Start & Initialisierung
+Das Programm wird mit `run.py` gestartet und prüft:
+- Python-Version (>= 3.8)
+- Erforderliche Module (z.B. cryptography, discord.py)
+- Administratorrechte (`ctypes.windll.shell32.IsUserAnAdmin()`)
+
+Sicherheitsmaßnahmen:
+- Mutex `Global\\AresLocker` verhindert Mehrfachausführung
+- Logging mit rotierenden Dateien
+- Prozessname wird verschleiert
+
+### 2. Analysephase (Sandbox-/VM-Erkennung)
+Mechanismen zur Erkennung von Analyseumgebungen:
+- **Hardware:** VM-MAC-Präfixe, CPUID, RAM-/HDD-Größe
+- **Software:** Bekannte Tools im Speicher, Debugger (`IsDebuggerPresent()`), Registry-Keys von VMs
+- **Netzwerk:** DNS bekannter Sandbox-Dienste, Latenztests
+
+**Bei Analyseerkennung:**
+- Sofortige Selbstlöschung (`dell.bat`), Secure-Wipe temporärer Dateien, Registry-Bereinigung
+
+**Bei unauffälliger Umgebung:**
+- Entpacken verschlüsselter Archive (7zip)
+- Start der Persistenzmechanismen
+- Hauptfunktionen werden initialisiert
+
+### 3. Persistenz
+Mehrere Methoden sorgen für Autostart und Selbstheilung:
+- Batch: `run.bat` (Autostart, Registry, geplante Tasks)
+- Registry: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+- Geplante Tasks (`schtasks`)
+- Kopie ins Autostart-Verzeichnis
+- Optional: Manipulation von Diensten/Scheduled Tasks
+- Regelmäßige Überprüfung und Wiederherstellung der Persistenz
+
+### 4. Terminüberwachung
+Zeitgesteuerter Ablauf über `trigger.bat`:
+- Überwachung eines vordefinierten Zeitpunkts (lokal oder via Zeitserver)
+- Verzögerung zur Erschwerung der Analyse möglich
+- Bei Erreichen des Zeitpunkts:
+  - Start der Hauptfunktion (`main.py`): Dateiverschlüsselung, Anzeige der Lösegeldforderung
+  - Deaktivierung von Schutzmechanismen (`disalbe.py`): Registry, Dienste, Prozesse
+  - Optional: Manipulation der Hosts-Datei
+
+### 5. Hauptfunktion: Dateiverschlüsselung & Schlüsselmanagement
+- Systemweite Dateisuche (Ausschluss von Systemverzeichnissen und bestimmten Dateitypen)
+- Für jede Datei: Generierung eines individuellen AES-256-Schlüssels (AES-GCM, IV pro Datei)
+- AES-Schlüssel wird **nicht lokal gespeichert**, sondern mit ECIES (SECP256K1, Public Key aus `public.pem`) verschlüsselt
+- Schlüssel und Metadaten werden **asynchron per Discord-Bot** an einen Channel gesendet (`key.bin`/`key_<hash>.bin`)
+- Nach erfolgreicher Verschlüsselung: Originaldatei löschen, Integrität per SHA256-Hash prüfen
+- Schlüsselmanagement im RAM (sichere Löschung nach Gebrauch)
+- Erstellung und Platzierung der Lösegeldforderung (`note.py`)
+- Optional: Verschlüsselung von Netzwerkfreigaben und Beenden bestimmter Prozesse
+
+#### Ablaufdiagramm (vereinfacht)
+1. Start (`run.py`): Initialisierung, Rechteprüfung, Logging
+2. Analysephase → ggf. Selbstlöschung (`dell.bat`)
+3. Extraktion & Persistenz (`extract.bat`, `run.bat`)
+4. Terminüberwachung (`trigger.bat`)
+5. Hauptfunktion: Verschlüsselung & Anzeige der Lösegeldforderung (`main.py`, `encryptor.py`, `note.py`)
+   - Schutzmechanismen deaktivieren (`disalbe.py`)
+   - Systemwiederherstellung verhindern
+   - Netzwerkfreigaben und externe Laufwerke optional einbeziehen
+
+#### Hinweise zur Konfiguration
+Alle zentralen Einstellungen werden in `encryptor/arciv/config.py` über die Klasse `Config` vorgenommen. Wichtige Parameter sind u.a.:
+- Bitcoin-Adresse, Kontakt-E-Mail, Countdown, Timer-Datei
+- Discord-Bot-Token, Channel-ID, Schlüsseldateiname
+- Chunk-Größe, Pfade, Logdatei, Dateiendung
+- Upload-Retries, Ausschlussverzeichnisse
+
+
+
+
+## Datei- und Verzeichnisstruktur
+
+- `AresLocker/encryptor/arciv/`: Hauptskripte und Batch-Dateien
+- `AresLocker/encryptor/`: Weitere Komponenten (z.B. 7z.exe, extract.bat)
+- `AresLocker/keys/`: Schlüsseldateien (`private.pem`, `public.pem`)
+- `AresLocker/decryptor/`: Tools zur Entschlüsselung (bei vorhandenem Private Key)
+
+**Wichtige Dateien:**
+- `start.py`: Initialisierung, Rechteprüfung, Logging
+- `extract.bat`: Entpacken, AV-Umgehung
+- `run.bat`: Persistenz, Autostart
+- `trigger.bat`: Zeitüberwachung
+- `main.py`: Steuerung der Hauptfunktion
+- `encryptor.py`: Verschlüsselung, Dateisuche, Schlüsselmanagement, Discord-Upload
+- `note.py`: Erstellung/Anzeige der Lösegeldforderung
+- `disalbe.py`: Deaktivierung von Schutzmechanismen
+- `dell.bat`: Selbstlöschung
+- `7z.exe`: Entpacken von Archiven
+- `dc_extract.py`: (optional)
 
 **Ablaufdiagramm (vereinfacht):**
 1. Start (`run.py`): Initialisierung, Rechteprüfung, Logging
@@ -82,7 +124,10 @@ Zu Beginn prüft das Programm, ob es in einer Analyseumgebung läuft (z. B. VM
    - Systemwiederherstellung verhindern
    - Netzwerkfreigaben und externe Laufwerke optional einbeziehen
 
-**Konfigurationen:**
+
+**Konfigurationen (aktualisiert):**
+Alle zentralen Einstellungen werden in `encryptor/arciv/config.py` über die Klasse `Config` vorgenommen. Wichtige Parameter sind:
+
     # === Werte für die Lösegeldforderung ===
     BTC_ADDRESS = "1A2b3C4d5E6f7G8h9I0jKLMNOPqrStUv"  # Bitcoin-Adresse
     CONTACT_EMAIL = "unlock@fakedomain.to"            # Kontakt-E-Mail
@@ -92,15 +137,45 @@ Zu Beginn prüft das Programm, ob es in einer Analyseumgebung läuft (z. B. VM
     # === Werte für den Upload des Keys auf Discord ===
     TOKEN = "DEIN_DISCORD_BOT_TOKEN"  # Hier deinen Bot Token eintragen
     CHANNEL_ID = 123456789012345678  # Hier die Ziel-Channel-ID eintragen
-    FILEPATH = "key.txt" # Universeller AES-Key
-
+    ENCRYPTED_KEY_FILENAME = "key.bin"  # Name der Schlüsseldatei
     # === Werte für die Verschlüsselung ===
-    CHUNK_SIZE = 1024  # 1 KB pro Chunk
-    CHUNK_SIZE = 5 * 1024 * 1024  # Größe der Chunks beim Lesen großer Dateien (5 MB)
-    RSA_PUBLIC_KEY_PATH = Path("public.pem")  # Pfad zum öffentlichen RSA-Schlüssel
-    ENCRYPTED_KEY_FILENAME = "key.txt"        # Name der Datei für den verschlüsselten AES-Schlüssel
+    CHUNK_SIZE = 5 * 1024 * 1024                # Größe der Chunks beim Lesen großer Dateien (5 MB)
+    ECIES_PUBLIC_KEY_PATH = Path("public.pem")  # Pfad zum öffentlichen ECIES-Schlüssel
     LOG_FILE = Path("encryption.log")         # Logdatei für den Verschlüsselungsprozess
     ENCRYPTED_EXTENSION = ".areslock"         # Dateiendung für verschlüsselte Dateien
+    
+    # === Discord-Upload Einstellungen ===
+    MAX_RETRIES = 3                          # Maximale Anzahl von Upload-Versuchen
+    RETRY_DELAY = 2                          # Wartezeit zwischen Upload-Versuchen (Sekunden)
+
+    # === Prozesse die beendet werden sollen ===
+    TARGET_PROCESSES = [
+        # Systemtools
+        "Taskmgr.exe", "ProcessHacker.exe", "procexp.exe", "procexp64.exe", "perfmon.exe",
+        "msconfig.exe", "regedit.exe", "cmd.exe", "powershell.exe", "pwsh.exe",
+        "wmic.exe", "services.exe", "resmon.exe", "SystemSettings.exe",
+        "eventvwr.exe", "gpedit.msc", "mmc.exe", "dxdiag.exe", "verifier.exe",
+        "sigverif.exe", "tasklist.exe", "taskkill.exe",
+
+        # Sicherheits-/Antiviren-Tools
+        "MsMpEng.exe", "NortonSecurity.exe", "avp.exe", "avgui.exe", "avastui.exe",
+        "mcshield.exe", "ashDisp.exe", "bdagent.exe", "f-secure.exe", "savservice.exe",
+        "ekrn.exe", "cfp.exe", "zatray.exe", "mbam.exe", "mbamtray.exe", "wrsa.exe",
+        "SecHealthUI.exe", "ccSvcHst.exe", "egui.exe", "avguard.exe", "pav.exe",
+        "clamscan.exe", "trusteer.exe", "msmpengcp.exe", "sbiectrl.exe", "vsmon.exe",
+        "gdscan.exe", "v3svc.exe", "spysweeper.exe", "detectionengine.exe", "hipsservice.exe",
+        "cortexagent.exe", "carbonblack.exe",
+
+        # Debugging / Forensik / Analyse
+        "windbg.exe", "ollydbg.exe", "ida.exe", "ida64.exe", "ImmunityDebugger.exe",
+        "x64dbg.exe", "procmon.exe", "tcpview.exe", "wireshark.exe", "fiddler.exe",
+        "dumpcap.exe", "procdump.exe", "autoruns.exe", "accesschk.exe",
+        "osqueryd.exe", "velociraptor.exe",
+
+        # Netzwerktools & CLI
+        "netstat.exe", "ipconfig.exe", "ping.exe", "tracert.exe",
+        "nmap.exe", "curl.exe", "wget.exe"
+    ]
 
     # === Verzeichnisse, die bei der Dateisuche ignoriert werden ===
     EXCLUDED_DIRS = [
@@ -118,7 +193,56 @@ Zu Beginn prüft das Programm, ob es in einer Analyseumgebung läuft (z. B. VM
     # === Werte für das Hauotprogramm ===
     BITCOIN_URL = "https://www.bitcoin.com"  # Zahlungs-URL
     NOTE_PROCESS_NAME = "note.exe"           # Name der Lösegeldforderung
-    NOTE_EXE_PATH = r"note.exe"              # Pfad zur Lösegeldforderung
+    NOTE_EXE_PATH = r"note.exe"              # Pfad zu Lösegeldforderung
 
-**Sicherheitshinweis:**
-Dieses Programm dient ausschließlich zu Forschungs- und Testzwecken. Der Missbrauch kann strafbar sein! Verwenden Sie es niemals auf produktiven Systemen oder ohne ausdrückliche Genehmigung.
+
+# Indikatoren einer Kompromittierung (IOCs)
+
+Die folgenden Merkmale können auf eine Infektion mit AresLocker hindeuten:
+
+**Dateinamen und Dateiendungen:**
+- Verschlüsselte Dateien mit der Endung `.areslock`
+- `key.txt` (verschlüsselter universeller AES-Schlüssel)
+- `encryption.log` (Logdatei)
+- `ransom_timer.txt` (Timer-Datei)
+- `note.exe` (Lösegeldforderung)
+- Batch-Dateien: `extract.bat`, `run.bat`, `trigger.bat`, `dell.bat`
+- Python-Skripte: `main.py`, `encryptor.py`, `note.py`, `disalbe.py`, `dc_extract.py`
+- `7z.exe` (wird zur Extraktion verwendet)
+
+**Verzeichnisse und Pfade:**
+- `AresLocker/encryptor/arciv/`, `AresLocker/keys/`, `AresLocker/decryptor/`
+
+**Prozesse:**
+- `note.exe`
+
+**Registry-Keys (Persistenz):**
+- `HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run`
+
+**Geplante Tasks:**
+- Aufgaben, die auf `run.bat` oder `note.exe` verweisen
+
+**Netzwerk:**
+- Kommunikation mit Discord (Bot-Token, Channel-ID)
+- Optional: Verbindung zu `https://www.bitcoin.com`
+
+**Kontaktinformationen in der Lösegeldforderung:**
+- Bitcoin-Adresse: `1A2b3C4d5E6f7G8h9I0jKLMNOPqrStUv`
+- Kontakt-E-Mail: `unlock@fakedomain.to`
+
+**Weitere Hinweise:**
+- Dateien/Prozesse mit den o.g. Namen
+- Unerwartete Dateien im Autostart oder geplante Tasks
+- Log- oder Schlüsseldateien im Benutzerverzeichnis
+- Netzwerkverbindungen zu Discord-IP-Adressen
+- Manipulierte Hosts-Datei (z. B. Blockierung von Sicherheitsupdates oder Hilfeseiten)
+- Geänderte Registry-Einträge (Task-Manager, Defender, Systemwiederherstellung deaktiviert)
+- Geänderte oder neue geplante Tasks mit ungewöhnlichen Triggern
+- Temporäre Dateien oder Reste im Benutzerverzeichnis
+- Auffällige Logdateien oder Spuren im Windows-Ereignisprotokoll
+- Hinweise auf Selbstheilungsmechanismen (z. B. wiederhergestellte Autostart-Einträge)
+- Dateien mit der Endung `.areslock` auf Netzlaufwerken oder USB-Geräten
+
+# Rechtlicher Hinweis (erneut)
+
+**Dieses Dokument und alle enthaltenen Informationen dienen ausschließlich Forschungs-, Analyse- und Testzwecken im Bereich der IT-Sicherheit. Jegliche Nutzung, Verbreitung oder Anwendung auf fremden Systemen ohne ausdrückliche und schriftliche Erlaubnis ist strengstens untersagt und kann straf- sowie zivilrechtliche Konsequenzen nach sich ziehen. Der Autor übernimmt keinerlei Haftung für Schäden, Datenverluste oder sonstige Folgen, die durch unsachgemäßen, fahrlässigen oder missbräuchlichen Einsatz entstehen. Die Verantwortung für die Einhaltung aller geltenden Gesetze und Vorschriften liegt ausschließlich beim Nutzer.**

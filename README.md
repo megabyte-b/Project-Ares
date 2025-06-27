@@ -1,4 +1,4 @@
-## PROJEKT A.R.E.S. Autonomous Reconnaissance & Encryption System
+# PROJEKT A.R.E.S. Autonomous Reconnaissance & Encryption System
 
 # Wichtiger rechtlicher Hinweis
 

